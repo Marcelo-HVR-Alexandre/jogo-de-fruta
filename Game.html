@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Jogo da Cifra de César</title>
+  <style>
+    body {
+      background-image: url("fruit.jpg");
+      background-repeat: repeat;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+      margin: 0;
+    }
+    h1 {
+      color: #333;
+      font-weight: bold;
+    }
+    .game-area {
+      background: white;
+      padding: 20px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+      width: 300px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+    }
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    #timer {
+      font-weight: bold;
+      font-size: 20px;
+      color: #d9534f;
+    }
+    #instruction {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 15px;
+    }
+    .info-box {
+      background: white;
+      padding: 20px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+      width: 300px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="info-box">
+    <h1>Jogo da Cifra de César</h1>
+    <div id="instruction">Adivinhe o nome da fruta! (ex: maca, banana)</div>
+  </div>
+
+  <div class="game-area">
+    <div id="status">Vez do Jogador 1</div>
+    <div>
+      <p><strong>Palavra Criptografada:</strong> <span id="cipher-word">---</span></p>
+    </div>
+    <input type="text" id="guess" placeholder="Seu palpite" />
+    <button onclick="submitGuess()">Enviar</button>
+    <p id="timer">Tempo restante: 20s</p>
+    <p id="message"></p>
+
+    <div class="scoreboard">
+      <div>Jogador 1: <span id="score1">0</span></div>
+      <div>Jogador 2: <span id="score2">0</span></div>
+    </div>
+    <p>Rodada: <span id="round">1</span> / 6</p>
+  </div>
+
+  <script>
+    // Lista de frutas em português (sem acentos para compatibilidade com a cifra)
+    const wordList = ['maca', 'banana', 'uva', 'melao', 'pessego', 'limao', 'manga', 'ameixa', 'kiwi', 'morango'];
+    let currentWord = '';
+    let cipheredWord = '';
+    let playerTurn = 1;
+    let score = { 1: 0, 2: 0 };
+    let round = 1;
+    let tries = 0;
+    let timerInterval;
+    let timeLeft = 20;
+
+    function caesarCipher(str, shift) {
+      return str.split('').map(char => {
+        if (char.match(/[a-z]/i)) {
+          const code = char.charCodeAt(0);
+          const base = (code >= 65 && code <= 90) ? 65 : 97;
+          return String.fromCharCode(((code - base + shift + 26) % 26) + base);
+        }
+        return char;
+      }).join('');
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 20;
+      document.getElementById('timer').textContent = `Tempo restante: ${timeLeft}s`;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = `Tempo restante: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById('message').textContent = `Tempo esgotado! A palavra era "${currentWord}".`;
+          setTimeout(endTurn, 1000);
+        }
+      }, 1000);
+    }
+
+    function nextWord() {
+      currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+      const shift = Math.random() > 0.5 ? 3 : -3;
+      cipheredWord = caesarCipher(currentWord, shift);
+      document.getElementById('cipher-word').textContent = cipheredWord;
+      document.getElementById('guess').value = '';
+      document.getElementById('message').textContent = '';
+      startTimer();
+    }
+
+    function submitGuess() {
+      const guess = document.getElementById('guess').value.toLowerCase();
+      if (guess === currentWord) {
+        score[playerTurn]++;
+        document.getElementById('message').textContent = "Correto!";
+        document.getElementById('score' + playerTurn).textContent = score[playerTurn];
+        clearInterval(timerInterval);
+        setTimeout(endTurn, 1000);
+      } else {
+        tries++;
+        if (tries >= 3) {
+          document.getElementById('message').textContent = `Errado! A palavra era "${currentWord}".`;
+          clearInterval(timerInterval);
+          setTimeout(endTurn, 1000);
+        } else {
+          document.getElementById('message').textContent = `Errado! Restam ${3 - tries} tentativas.`;
+        }
+      }
+    }
+
+    function endTurn() {
+      tries = 0;
+      if (playerTurn === 2) round++;
+      if (round > 6) {
+        declareWinner();
+        return;
+      }
+      playerTurn = playerTurn === 1 ? 2 : 1;
+      document.getElementById('status').textContent = `Vez do Jogador ${playerTurn}`;
+      document.getElementById('round').textContent = round;
+      nextWord();
+    }
+
+    function declareWinner() {
+      let result;
+      if (score[1] > score[2]) {
+        result = 'Jogador 1 Venceu!';
+      } else if (score[2] > score[1]) {
+        result = 'Jogador 2 Venceu!';
+      } else {
+        result = "Empate!";
+      }
+      document.getElementById('status').textContent = result;
+      document.getElementById('cipher-word').textContent = '---';
+      document.querySelector('button').disabled = true;
+      clearInterval(timerInterval);
+      document.getElementById('timer').textContent = '';
+    }
+
+    nextWord();
+  </script>
+</body>
+</html>
